@@ -1,0 +1,375 @@
+---
+title: "Lab 7 Spring 2025"
+author: "Stephanie Gonzalez Gil"
+date: "2025-03-20"
+output: word_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Agenda
+
+This lab session has three components:
+
+1.  A basic view of GitHub
+
+2.  Key data management and cleaning codes
+
+3.  Loop tutorial
+
+# Section 1: GitHub
+
+We'll start by looking at GitHub.
+
+# Section 2: Data Management
+
+Next, we are going to move on to some basic data cleaning commands that will help you as you start to collect data.
+
+**NOTE**: Never make changes in your Excel file. Only make changes using
+your R Code.
+
+## Missing Data
+
+Let's begin by dealing with missing data. Missing data can cause
+problems like:
+
+-   Reduction in sample size due to unobserved values
+-   Biased results due to systematic differences between observed and
+    missing data
+-   No replacement for observed data
+
+It is important to consider the amount, measure, pattern, and possible
+causes of missing data when we are trying to manage it.
+
+There are three main types:
+
+1.  Missing completely at random (MCAR), no systemic missing data. *This
+    is very unlikely*
+2.  Missing at random (MAR), systemic missing data of observed and
+    unobserved data. *We are able to account for this in analysis*.
+3.  Missing not at random (MNAR), systemic missing data of unobserved
+    data. *We cannot account for this in analysis.*
+
+There are two main measures of "missingness":
+
+1.  Percentage missing per variable
+2.  Pairwise missing rate
+
+There are multiple ways to manage missing data:
+
+-   Complete case deletion
+
+-   Simple substitution (replace value with summary statistic)
+
+-   Assigning separate category
+
+-   Multiple imputation (missing values are replaced by a random sample
+    of plausible values)
+
+R Studio also offers us tools to visualize missing patterns with the
+mice package using the codes md.pattern(), and md.pair().
+
+-   mice package includes:
+
+    -   md.pattern()
+
+    -   md.pair()
+
+```{r}
+#install.packages("mice")
+library(mice)
+View(airquality)
+?airquality 
+```
+
+Let's use md.pattern() first
+
+```{r}
+?md.pattern
+md.pattern(airquality)
+```
+
+Now let's look at md.pairs()
+
+```{r}
+?md.pairs
+md.pairs(airquality)
+```
+
+Now that we know we have missing data how do we manage it? One of the
+things we can do is omit the missing variables altogether.
+
+```{r}
+ds <- airquality
+ds_noNA <- na.omit(airquality)
+dim(ds) - dim(ds_noNA)
+#We have removed 42 observations. 
+```
+
+With missing data removed from our data, we are now ready to create our
+working data set and rename our variables if necessary. These commands
+should be review.
+
+```{r}
+library(dplyr)
+ds_working <- ds_noNA %>% 
+  select(Ozone,Solar.R,Temp, Month)
+
+ds_working_2 <- ds_working %>%
+  rename(ozone = Ozone) %>% 
+  rename(sol_rad = Solar.R) %>% 
+  rename(temp = Temp) %>% 
+  rename(month = Month)
+
+View(ds_working_2)
+```
+
+Now let's say I am interested in making Temp a categorical variable
+using the quantiles of the data.
+
+```{r}
+quant <- quantile(ds_working_2$temp)
+quant
+
+ds_final<- ds_working_2 %>%
+  mutate(temp.cat = findInterval(temp, quantile(temp), 
+                                    rightmost.closed = TRUE))
+
+ds_final$temp_cat <- as.factor(ds_final$temp.cat)
+
+View(ds_final)
+```
+
+Now that I have the missing values removed, only the variables I want
+named the way I want, and my new categorical variable for analysis,
+let's see how I can use R to help me make my Table 1.
+
+```{r}
+#install.packages("tableone")
+library(tableone)
+x <- CreateTableOne(data = ds_final,
+                    vars = c("ozone","sol_rad","temp_cat"))
+x
+```
+             
+# Section 3: Loop Functions
+
+Loop is a base r command that runs commands for each elements
+(observation or value) of a vector, and returns a string of results.
+
+The loop function, has a basic syntax:
+
+for (<element> in <a string of elements>) {
+<vector to contain our loop outputs>[element] \<-
+function(<for each element>) }
+
+It will take one <element> from our <string of elements>, run the
+function specified in the function() statement, return the output into
+the <vector to contain our loop outputs>, then repeat the step for the
+following <element> in the <string of elements> until all are computed.
+
+<element> can be any name but usually use 'i' <string of elements> can
+be a vector that points to the order of elements to be processed.
+function() can be multiple written in terms of the computation for each
+element
+
+Let's break down the components:
+
+1\. for (<element> in <a string of elements>)
+
+{ 2. function(<for each element>)
+
+3\. <vector to contain our loop outputs>[element] }
+
+4\. initiation of <vector to contain our loop outputs> before running
+the loop to store the results
+
+**Example:** We will create a dataframe 'musical_db', and run a simple
+loop on each of the values for one of the variables 'noise_level' to
+create a new variable 'power' that will contain the results of (each
+value of noise_level)\*100
+
+```{r}
+noise_level <- c(20, 30, 50)
+instruments <- c("violin", "piano", "cello")
+
+musical_db <- data.frame(instruments, noise_level)
+
+View(musical_db)
+
+```
+
+So, let's disassemble the steps,
+
+first, lets state our
+
+for (<element> in <a string of elements>)
+
+we are running the computation for each <element> or observation of
+noise level,
+
+we will code this by using the length statement for our example (note we
+can also use levels in factor variables with levels, or other metrics)
+
+```{r}
+
+length(musical_db$noise_level)
+
+```
+
+we find we have 3 observations of noise_level we will be computing in
+turn.
+
+We plan to run a loop that is read as "for all elements i, from 1 to
+length of the specified variable number of observations..."
+
+we write this as:
+
+```         
+for (i in 1:length(musical_db$noise_level))
+```
+
+Next, we define the function
+
+we want to compute for each observation of noise level, noise_level\*100
+
+so our function is:
+
+noise_level[i]\*100
+
+so far, we have defined our <element>, <string of elements>, the
+function()
+
+now lets assign a variable to store the outputs:
+
+music_db\$power \<- noise_level[i]\*100
+
+Now, let's assemble these components:
+
+```{r}
+#initiating the dummy variable to store our output
+musical_db$power<-c()
+
+
+for (i in 1:length(musical_db$noise_level))
+  {
+musical_db$power[i]<- noise_level[i]*100
+}
+
+#now lets view our resulting dataframe
+View(musical_db)
+```
+
+On a side note, we can use the function command to create a customized
+command to carry out
+
+For example, let's create a function 'x' that multiplies each value by
+10\^3, we can run the function on all values of noise_level to create a
+new variable "powered_3"
+
+```{r}
+x <- function(i) i*10^3
+
+musical_db$powered3 <- x(musical_db$noise_level)
+
+View(musical_db)
+```
+
+Let's look at our malawi dataset to see how this could be useful for
+Problem Set #2. We are going to examine radio ownership (hv207) by
+wealth index (hv270) as well as tv ownership (hv208) by wealth index.
+
+```{r}
+malawi <- read.csv("~/Documents/GH 811/PS2/malawi2010.csv")
+
+View(malawi)
+
+ds_working <- malawi %>% select(hv207,hv208,hv270)
+
+ds_noNA <- ds_working %>% 
+  filter(hv207!=9) %>% 
+  filter(hv208!=9) %>% 
+  filter(hv270!=9)
+
+ds_final <- ds_noNA %>% 
+  rename(radio = hv207) %>% 
+  rename(wealth = hv270) %>% 
+  rename(tv = hv208)
+
+ds_final$wealth.cat <- ordered(ds_final$wealth, levels = c("poorest","poorer","middle","richer","richest"))
+
+ds_final$radio.f <- ordered(ds_final$radio, levels = c(1,0))
+head(ds_final)
+```
+
+Now, let's start building our loop.
+
+```{r}
+#creating vector 'x' to contain (concatenate) our loop output
+x <- c()
+
+#viewing our dummy vector
+x
+
+#checking our levels 
+levels(ds_final$wealth.cat)
+```
+
+Let's recall,
+
+The loop function, has a specific syntax:
+
+for (<element> in <a string of elements>) {
+<vector to contain our loop outputs>[element] \<-
+function(<for each element>) }
+
+```{r}
+for (i in levels(ds_final$wealth.cat))
+  {
+  x[i] <-
+   prop.table(table(ds_final$radio.f[ds_final$wealth.cat==i]))[1]*100
+  }
+
+x
+
+```
+
+We can check our work with prop.table
+
+```{r}
+y <- prop.table(table(ds_final$wealth.cat, ds_final$radio), 1)*100
+y
+```
+
+Now, lets generate a bar chart using the results.
+
+```{r}
+barplot(x,
+main = "Proportion of Radio Use by Wealth Status, Malawi",
+xlab="Wealth Index", 
+ylab="Proportion of Radio Use(%)",
+ylim=c(0,100))
+```
+
+Now create a for loop and bar chart for TV use. What do you see?
+
+```{r}
+ds_final$tv.f <- ordered(ds_final$tv, levels=c(1,0))
+head(ds_final)
+
+for (i in levels(ds_final$wealth.cat)){
+  x[i] <-
+   prop.table(table(ds_final$tv.f[ds_final$wealth.cat==i]))[1]*100
+ }
+x
+
+y<- prop.table(table(ds_final$wealth.cat,ds_final$tv.f),1)*100
+y
+
+barplot(x,
+main="Proportion of TV Use by Wealth Status, Malawi",
+xlab="Wealth Index", 
+ylab="Proportion of TV Use(%)",
+ylim=c(0, 100))
+```
